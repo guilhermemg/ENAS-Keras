@@ -1,29 +1,16 @@
-import numpy as np
 import os
-import sys
-import random
-import string
-from sklearn.externals import joblib
+import joblib
 
-import keras
-from keras import backend as K
-from keras.utils import to_categorical
-from keras import Model
-from keras.layers import Add, Concatenate, Reshape
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization, ZeroPadding2D, Cropping2D
-from keras.layers import Conv2D, SeparableConv2D, MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D
-from keras.optimizers import Adam, SGD
-from keras.callbacks import EarlyStopping
-from keras import losses, metrics
-
-import tensorflow as tf
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Add, Concatenate
+from tensorflow.keras.layers import Input, Dense, Activation, BatchNormalization, ZeroPadding2D, Cropping2D
+from tensorflow.keras.layers import Conv2D, SeparableConv2D, MaxPooling2D, AveragePooling2D, GlobalAveragePooling2D
+from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.callbacks import EarlyStopping
 
 from src.keras_utils import get_weight_initializer
 from src.keras_utils import get_weight_regularizer
-from src.utils import get_random_str
-from src.utils import get_size_str
 from src.utils import get_int_list_in_str
-from src.utils import generate_random_cell
 from src.utils import make_dir
 
 
@@ -496,7 +483,6 @@ class ChildNetworkController(object):
         self.weight_dict = weight_dict
         self.weight_directory = make_dir(weight_directory)
 
-        self.graph = tf.get_default_graph()
 
     def generate_child_network(self):
         for i in range(len(self.child_network_definition)):
@@ -572,10 +558,7 @@ class ChildNetworkController(object):
             self.weight_dict[wn] = w
             if save_to_disk:
                 print("saving weight: {0}".format(wn))
-                joblib.dump(
-                    w,
-                    os.path.join(self.weight_directory,
-                                 "{0}.joblib".format(wn)))
+                joblib.dump(w, os.path.join(self.weight_directory, "{0}.joblib".format(wn)))
 
     def generate_weight_name(self, d):
         """
@@ -619,8 +602,7 @@ class ChildNetworkController(object):
                     elif "{0}.joblib".format(weight_name) in file_list:
                         changed = True
                         print("loading weight: {0}".format(weight_name))
-                        weights_from_file = self.load_weight_file(
-                            "{0}.joblib".format(weight_name))
+                        weights_from_file = self.load_weight_file("{0}.joblib".format(weight_name))
                         for w in weights_from_file:
                             weights[i] = w
                             i += 1
@@ -630,8 +612,7 @@ class ChildNetworkController(object):
                     if weight_name in file_list:
                         changed = True
                         print("loading weight: {0}".format(weight_name))
-                        weights_from_file = self.load_weight_file(
-                            "{0}.joblib".format(weight_name))
+                        weights_from_file = self.load_weight_file("{0}.joblib".format(weight_name))
                         for w in weights_from_file:
                             weights[i] = w
                             i += 1
@@ -660,46 +641,45 @@ class ChildNetworkController(object):
                             ],
                             data_gen=None,
                             data_flow_gen=None):
-        with self.graph.as_default():
-            self.model.compile(
-                loss=self.opt_loss,
-                optimizer=self.opt,
-                metrics=self.opt_metrics)
-            if data_flow_gen is not None:
-                self.model.fit_generator(
-                    data_flow_gen,
-                    validation_data=validation_data,
-                    steps_per_epoch=x_train.shape[0] // batch_size,
-                    epochs=epochs,
-                    shuffle=True,
-                    callbacks=callbacks,
-                    max_queue_size=50,
-                    use_multiprocessing=True,
-                    workers=7)
-            elif data_gen is not None:
-                data_gen.fit(x_train)
-                self.model.fit_generator(
-                    data_gen.flow(x_train, y_train, batch_size=batch_size),
-                    validation_data=validation_data,
-                    epochs=epochs,
-                    shuffle=True,
-                    callbacks=callbacks,
-                    max_queue_size=50,
-                    use_multiprocessing=True,
-                    workers=7)
-            else:
-                self.model.fit(
-                    x_train,
-                    y_train,
-                    validation_data=validation_data,
-                    batch_size=batch_size,
-                    epochs=epochs,
-                    shuffle=True,
-                    callbacks=callbacks)
+        
+        self.model.compile(
+            loss=self.opt_loss,
+            optimizer=self.opt,
+            metrics=self.opt_metrics)
+        if data_flow_gen is not None:
+            self.model.fit_generator(
+                data_flow_gen,
+                validation_data=validation_data,
+                steps_per_epoch=x_train.shape[0] // batch_size,
+                epochs=epochs,
+                shuffle=True,
+                callbacks=callbacks,
+                max_queue_size=50,
+                use_multiprocessing=True,
+                workers=7)
+        elif data_gen is not None:
+            data_gen.fit(x_train)
+            self.model.fit_generator(
+                data_gen.flow(x_train, y_train, batch_size=batch_size),
+                validation_data=validation_data,
+                epochs=epochs,
+                shuffle=True,
+                callbacks=callbacks,
+                max_queue_size=50,
+                use_multiprocessing=True,
+                workers=7)
+        else:
+            self.model.fit(
+                x_train,
+                y_train,
+                validation_data=validation_data,
+                batch_size=batch_size,
+                epochs=epochs,
+                shuffle=True,
+                callbacks=callbacks)
 
     def evaluate_child_network(self, x_test, y_test):
-        with self.graph.as_default():
-            return self.model.evaluate(x_test, y_test)
+        return self.model.evaluate(x_test, y_test)
 
-    def close_tf_session(self):
-        tf.Session().close()
+    # def close_tf_session(self):
+    #     tf.Session().close()

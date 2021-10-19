@@ -1,27 +1,13 @@
 import numpy as np
 import os
-import sys
-import random
 
-import keras
-from keras import backend as K
-from keras.utils import to_categorical
-from keras import Model
-from keras.layers import Add, Concatenate, Embedding, LSTM, LSTMCell, RNN, Reshape
-from keras.layers import Input, Dense, Dropout, Activation, BatchNormalization
-from keras.optimizers import Adam
-from keras.callbacks import EarlyStopping
-from keras import losses, metrics
-from keras.models import load_model
-
-import tensorflow as tf
+from tensorflow.keras import Model
+from tensorflow.keras.layers import LSTMCell, RNN, Reshape
+from tensorflow.keras.layers import Input, Dense, Activation
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 
 from src.keras_utils import get_weight_initializer
-from src.keras_utils import get_weight_regularizer
-from src.utils import get_random_str
-from src.utils import get_size_str
-from src.utils import get_int_list_in_str
-from src.utils import generate_random_cell
 
 
 class ControllerRNNController(object):
@@ -53,7 +39,6 @@ class ControllerRNNController(object):
         self.baseline = None
         self.baseline_decay = baseline_decay
 
-        self.graph = tf.get_default_graph()
 
     def lstm_reshape(self,
                      inputs,
@@ -95,12 +80,7 @@ class ControllerRNNController(object):
 
     def generate_controller_rnn(self):
         outputs = []
-        controller_input = Input(
-            shape=(
-                1,
-                1,
-            ),
-            name="{0}_{1}".format(self.controller_network_name, "input"))
+        controller_input = Input(shape=(1, 1,), name="{0}_{1}".format(self.controller_network_name, "input"))
 
         for i in range(2, self.num_nodes):
             for o in ["inputL", "inputR", "operL", "operR"]:
@@ -138,29 +118,19 @@ class ControllerRNNController(object):
             if self.baseline is None:
                 self.baseline = 0
             else:
-                self.baseline -= (1 - self.baseline_decay) * (
-                    self.baseline - self.reward)
+                self.baseline -= (1 - self.baseline_decay) * (self.baseline - self.reward)
             return y_pred * (self.reward - self.baseline)
 
         def _define_loss(controller_loss):
             outputs_loss = {}
             for i in range(2, self.num_nodes):
-                outputs_loss["{0}_{1}_{2}_{3}".format(
-                    self.controller_network_name, "inputL", i,
-                    "softmax")] = controller_loss
-                outputs_loss["{0}_{1}_{2}_{3}".format(
-                    self.controller_network_name, "inputR", i,
-                    "softmax")] = controller_loss
-                outputs_loss["{0}_{1}_{2}_{3}".format(
-                    self.controller_network_name, "operL", i,
-                    "softmax")] = controller_loss
-                outputs_loss["{0}_{1}_{2}_{3}".format(
-                    self.controller_network_name, "operR", i,
-                    "softmax")] = controller_loss
+                outputs_loss["{0}_{1}_{2}_{3}".format(self.controller_network_name, "inputL", i, "softmax")] = controller_loss
+                outputs_loss["{0}_{1}_{2}_{3}".format(self.controller_network_name, "inputR", i, "softmax")] = controller_loss
+                outputs_loss["{0}_{1}_{2}_{3}".format(self.controller_network_name, "operL", i, "softmax")] = controller_loss
+                outputs_loss["{0}_{1}_{2}_{3}".format(self.controller_network_name, "operR", i, "softmax")] = controller_loss
             return outputs_loss
 
-        self.controller_rnn.compile(
-            loss=_define_loss(_controller_loss), optimizer=self.opt)
+        self.controller_rnn.compile(loss=_define_loss(_controller_loss), optimizer=self.opt)
 
     def save_model(self):
         self.controller_rnn.save_weights(self.model_file)
@@ -169,26 +139,21 @@ class ControllerRNNController(object):
                              targets,
                              batch_size=1,
                              epochs=50,
-                             callbacks=[
-                                 EarlyStopping(
-                                     monitor='val_loss',
-                                     patience=3,
-                                     verbose=1,
-                                     mode='auto')
-                             ]):
-        with self.graph.as_default():
-            self.compile_controller_rnn()
-            self.controller_rnn.fit(
-                self.input_x,
-                targets,
-                epochs=epochs,
-                batch_size=batch_size,
-                verbose=0)
+                             callbacks=[EarlyStopping(monitor='val_loss', patience=3, verbose=1, mode='auto')]):
+    
+        self.compile_controller_rnn()
+        self.controller_rnn.fit(
+            self.input_x,
+            targets,
+            epochs=epochs,
+            batch_size=batch_size,
+            verbose=0)
+
 
     def softmax_predict(self):
-        with self.graph.as_default():
-            self.compile_controller_rnn()
-            return self.controller_rnn.predict(self.input_x)
+        self.compile_controller_rnn()
+        return self.controller_rnn.predict(self.input_x)
+
 
     def random_sample_softmax(self, controller_pred):
         sample_softmax = []
@@ -221,12 +186,8 @@ class ControllerRNNController(object):
         name_prefix = self.controller_network_name
         for i in range(2, self.num_nodes):
             pos = list(range((i - 2) * 4, ((i - 2) * 4) + 4))
-            ydict["{0}_{1}_{2}_{3}".format(
-                name_prefix, "inputL", i, "softmax")] = controller_pred[pos[0]]
-            ydict["{0}_{1}_{2}_{3}".format(
-                name_prefix, "inputR", i, "softmax")] = controller_pred[pos[1]]
-            ydict["{0}_{1}_{2}_{3}".format(
-                name_prefix, "operL", i, "softmax")] = controller_pred[pos[2]]
-            ydict["{0}_{1}_{2}_{3}".format(
-                name_prefix, "operR", i, "softmax")] = controller_pred[pos[3]]
+            ydict["{0}_{1}_{2}_{3}".format(name_prefix, "inputL", i, "softmax")] = controller_pred[pos[0]]
+            ydict["{0}_{1}_{2}_{3}".format(name_prefix, "inputR", i, "softmax")] = controller_pred[pos[1]]
+            ydict["{0}_{1}_{2}_{3}".format(name_prefix, "operL", i, "softmax")] = controller_pred[pos[2]]
+            ydict["{0}_{1}_{2}_{3}".format(name_prefix, "operR", i, "softmax")] = controller_pred[pos[3]]
         return ydict

@@ -1,5 +1,3 @@
-import keras
-from keras import backend as K
 from keras import initializers, regularizers
 
 

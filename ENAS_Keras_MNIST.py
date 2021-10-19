@@ -1,18 +1,9 @@
 import numpy as np
-import os
-import sys
-import shutil
-import gc
-from copy import deepcopy
 
-import keras
-from keras import backend as K
-from keras.utils import to_categorical
-from keras.optimizers import Adam
-from keras.datasets import mnist
-from keras.callbacks import EarlyStopping, LearningRateScheduler
-
-import tensorflow as tf
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.optimizers import Adam, SGD
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.callbacks import EarlyStopping
 
 from ENAS import EfficientNeuralArchitectureSearch
 from src.utils import sgdr_learning_rate
@@ -72,9 +63,7 @@ ENAS = EfficientNeuralArchitectureSearch(
     controller_opt=Adam(lr=0.00035, decay=1e-3, amsgrad=True),
     controller_batch_size=1,
     controller_epochs=50,
-    controller_callbacks=[
-        EarlyStopping(monitor='val_loss', patience=1, verbose=1, mode='auto')
-    ],
+    controller_callbacks=[EarlyStopping(monitor='val_loss', patience=1, verbose=1, mode='auto')],
     controller_temperature=5.0,
     controller_tanh_constant=2.5,
     controller_normal_model_file="mnist_normal_controller.hdf5",
