@@ -176,7 +176,7 @@ class EfficientNeuralArchitectureSearch(object):
             reduction_cell=reduction_cell,
             NetworkOperationControllerInstance=NOC)
 
-    def define_chile_network(self, CG, opt):
+    def define_child_network(self, CG, opt):
         return ChildNetworkController(
             child_network_definition=self.child_network_definition,
             CellGeneratorInstance=CG,
@@ -282,7 +282,7 @@ class EfficientNeuralArchitectureSearch(object):
             self.child_opt = SGD(lr=self.child_lr_scedule[e], nesterov=True)
 
             CG = self.generate_child_cell(sample_cell["normal_cell"], sample_cell["reduction_cell"], self.define_network_operations())
-            CNC = self.define_chile_network(CG, self.child_opt)
+            CNC = self.define_child_network(CG, self.child_opt)
             CNC.set_weight_to_layer(set_from_dict=self.set_from_dict)
             CNC.train_child_network(
                 x_train=self.x_train,
@@ -364,7 +364,7 @@ class EfficientNeuralArchitectureSearch(object):
         print("BEST REDUCTION CELL: \n{0}".format(self.best_reduction_cell))
 
         CG = self.generate_child_cell(normal_cell, reduction_cell, self.define_network_operations())
-        CNC = self.define_chile_network(CG, child_opt)
+        CNC = self.define_child_network(CG, child_opt)
 
         print("MODEL SUMMARY:\n")
         print(CNC.model.summary())
